@@ -4,6 +4,8 @@ import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 import { ToastProvider } from '@/components/Toast';
 import CommandPalette from '@/components/CommandPalette';
+import ScrollProgress from '@/components/ScrollProgress';
+import KeyboardCheatsheet from '@/components/KeyboardCheatsheet';
 import './globals.css';
 
 const geistSans = Geist({
@@ -17,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: {
     default: '晓斌AI实验室',
     template: '%s · 晓斌AI实验室',

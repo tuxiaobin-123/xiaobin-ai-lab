@@ -1,11 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Copy, RefreshCw, Zap } from 'lucide-react';
+import { Copy, FileDown, RefreshCw, Zap } from 'lucide-react';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useToast } from '@/components/Toast';
 import { ResultSkeleton } from '@/components/Skeleton';
+
+interface ContentSections {
+  titles: string;
+  body: string;
+  tags: string;
+}
+
+function extractSections(text: string): ContentSections {
+  const lower = text;
+  const sections: ContentSections = { titles: '', body: '', tags: '' };
+
+  const findHeader = (patterns: string[]): number => {
+    for (const p of patterns) {
+      const idx = lower.search(new RegExp(`(^|\\n)#{1,4}\\s*[^\\n]*${p}`, 'i'));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+
+  const titleStart = findHeader(['标题', '爆款标题', '候选标题']);
+  const bodyStart = findHeader(['正文', '内容', '主体', '脚本', '鱼骨']);
+  const tagStart = findHeader(['标签', 'tag', 'hashtag', '话题']);
+
+  const points = [
+    { name: 'titles', start: titleStart },
+    { name: 'body', start: bodyStart },
+    { name: 'tags', start: tagStart },
+  ].filter((p) => p.start >= 0).sort((a, b) => a.start - b.start);
+
+  if (points.length === 0) {
+    sections.body = text;
+    return sections;
+  }
+
+  for (let i = 0; i < points.length; i++) {
+    const start = points[i].start;
+    const end = i + 1 < points.length ? points[i + 1].start : text.length;
+    const slice = text.slice(start, end).trim();
+    sections[points[i].name as keyof ContentSections] = slice;
+  }
+
+  return sections;
+}
 
 const PLATFORMS = [
   { id: 'xhs', label: '小红书', emoji: '📕', desc: '爆款标题 + 鱼骨结构正文 + 推荐标签', color: 'rose' },
@@ -57,6 +100,34 @@ export default function ContentEngine() {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(result);
     toast('内容已复制到剪贴板', 'success');
+  };
+
+  const sections = useMemo(() => extractSections(result), [result]);
+  const charCount = result.length;
+  const wordEstimate = Math.ceil(charCount / 1.5);
+
+  const copySection = async (label: string, content: string) => {
+    if (!content.trim()) {
+      toast(`暂无${label}内容`, 'info');
+      return;
+    }
+    await navigator.clipboard.writeText(content);
+    toast(`${label}已复制`, 'success');
+  };
+
+  const downloadMd = () => {
+    const fileName = `${platform === 'xhs' ? '小红书' : '抖音'}_${topic.replace(/[\\/:*?"<>|]/g, '_')}_${Date.now()}.md`;
+    const md = `# ${platform === 'xhs' ? '小红书' : '抖音'} · ${topic}\n\n> 生成时间：${new Date().toLocaleString('zh-CN')} · 晓斌AI实验室\n\n${result}\n`;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('已下载 Markdown 文件', 'success');
   };
 
   return (
@@ -161,11 +232,16 @@ export default function ContentEngine() {
 
       {result && !loading && (
         <div className="rounded-2xl border border-rose-500/20 bg-white/5 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-3">
-            <span className="text-sm font-medium text-rose-400">
-              {platform === 'xhs' ? '📕 小红书内容' : '🎵 抖音脚本'}
-            </span>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between border-b border-white/10 px-6 py-3 flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-rose-400">
+                {platform === 'xhs' ? '📕 小红书内容' : '🎵 抖音脚本'}
+              </span>
+              <span className="text-xs text-gray-500">
+                {charCount} 字 · 约 {wordEstimate} 个有效词
+              </span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => { setResult(''); setTopic(''); }}
@@ -175,13 +251,55 @@ export default function ContentEngine() {
               </button>
               <button
                 type="button"
+                onClick={downloadMd}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white"
+              >
+                <FileDown size={12} />下载 .md
+              </button>
+              <button
+                type="button"
                 onClick={handleCopy}
                 className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/20 hover:text-white"
               >
-                <Copy size={12} />复制
+                <Copy size={12} />全部复制
               </button>
             </div>
           </div>
+
+          {/* Section copy chips */}
+          {(sections.titles || sections.tags) && (
+            <div className="flex flex-wrap gap-2 border-b border-white/5 bg-white/[0.02] px-6 py-2.5">
+              <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">分区复制：</span>
+              {sections.titles && (
+                <button
+                  type="button"
+                  onClick={() => copySection('标题', sections.titles)}
+                  className="flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 text-xs text-rose-300 hover:bg-rose-500/20"
+                >
+                  <Copy size={10} />标题
+                </button>
+              )}
+              {sections.body && (
+                <button
+                  type="button"
+                  onClick={() => copySection('正文', sections.body)}
+                  className="flex items-center gap-1 rounded-md bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-300 hover:bg-indigo-500/20"
+                >
+                  <Copy size={10} />{platform === 'xhs' ? '正文' : '脚本'}
+                </button>
+              )}
+              {sections.tags && (
+                <button
+                  type="button"
+                  onClick={() => copySection('标签', sections.tags)}
+                  className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  <Copy size={10} />标签
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="p-6">
             <MarkdownRenderer content={result} />
           </div>

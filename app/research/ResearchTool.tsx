@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Check, Copy, Download, LineChart, Printer, Search, Trash2, Zap } from 'lucide-react';
+import { Copy, FileDown, LineChart, Printer, Search, Trash2, Zap } from 'lucide-react';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useToast } from '@/components/Toast';
 import { ResultSkeleton } from '@/components/Skeleton';
@@ -55,6 +55,23 @@ export default function ResearchTool() {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(result);
     toast('报告已复制到剪贴板', 'success');
+  };
+
+  const handleDownloadMd = () => {
+    const title = mode === 'name' ? companyName : '投研分析报告';
+    const date = new Date().toLocaleString('zh-CN');
+    const fileName = `${title.replace(/[\\/:*?"<>|]/g, '_')}_${Date.now()}.md`;
+    const md = `# ${title}\n\n> 生成时间：${date} · 晓斌AI实验室\n\n${result}\n\n---\n*本报告由 AI 辅助生成，仅供参考，不构成投资建议。*\n`;
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('已下载 Markdown 文件', 'success');
   };
 
   const handlePrint = () => {
@@ -185,6 +202,13 @@ export default function ResearchTool() {
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-3">
             <span className="text-sm font-medium text-emerald-400">📊 分析报告</span>
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadMd}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 transition-colors hover:border-white/20 hover:text-white"
+              >
+                <FileDown size={12} />下载 .md
+              </button>
               <button
                 type="button"
                 onClick={handlePrint}

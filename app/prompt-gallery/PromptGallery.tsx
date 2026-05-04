@@ -104,9 +104,23 @@ function PromptCard({
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.25 }}
-      className="group cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-5 transition-colors hover:border-white/20 hover:bg-white/8"
+      className="group relative cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-5 transition-colors hover:border-white/20 hover:bg-white/8"
       onClick={() => onSelect(prompt)}
     >
+      {/* Animated gradient border on hover */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1), rgba(244,63,94,0.12)) border-box',
+          WebkitMask:
+            'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+          padding: '1px',
+        }}
+      />
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
           <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${categoryColor[prompt.category]}`}>

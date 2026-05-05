@@ -49,23 +49,7 @@ const tools = [
   },
 ];
 
-const chronicles = [
-  {
-    id: '003', date: '2025-05-04', day: 3,
-    title: '实验003：30天公开构建正式启动',
-    summary: '用 Next.js 16 + DeepSeek API 搭建主站框架，踩了 Tailwind v4 的坑。',
-  },
-  {
-    id: '002', date: '2025-05-03', day: 2,
-    title: '实验002：技术选型决策记录',
-    summary: '为什么选 Next.js 而不是 Framer？单仓库 vs 多仓库的权衡分析。',
-  },
-  {
-    id: '001', date: '2025-05-02', day: 1,
-    title: '实验001：项目立项与30天目标拆解',
-    summary: '从一份 3000 字方案文档，到可执行的 30 天 roadmap。',
-  },
-];
+type ChroniclePreview = { id: string; date: string; day: number; title: string; summary: string; tags: string[] };
 
 const resources = [
   {
@@ -91,9 +75,11 @@ const stats = [
 
 export default function HomePage() {
   const [toolStats, setToolStats] = useState<Record<string, number>>({});
+  const [chronicles, setChronicles] = useState<ChroniclePreview[]>([]);
 
   useEffect(() => {
     fetch('/api/stats').then((r) => r.json()).then(setToolStats).catch(() => {});
+    fetch('/api/chronicles?limit=3').then((r) => r.json()).then(setChronicles).catch(() => {});
   }, []);
 
   const trackAndNavigate = (tool: string) => {
@@ -330,34 +316,50 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {chronicles.map((c, i) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-              >
-                <Link
-                  href={`/chronicles#entry-${c.id}`}
-                  className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20 hover:bg-white/10"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    <BookOpen size={16} className="text-indigo-400" />
-                  </div>
-                  <div>
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="text-xs text-gray-500">{c.date}</span>
-                      <span className="rounded-full bg-indigo-600/20 px-1.5 py-0.5 text-xs text-indigo-400">
-                        Day {c.day}
-                      </span>
+            {chronicles.length === 0
+              ? [0, 1, 2].map((i) => (
+                  <div key={i} className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 animate-pulse">
+                    <div className="mt-0.5 h-4 w-4 rounded bg-white/10 flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-24 rounded bg-white/10" />
+                      <div className="h-4 w-3/4 rounded bg-white/10" />
+                      <div className="h-3 w-1/2 rounded bg-white/10" />
                     </div>
-                    <p className="text-sm font-medium text-white">{c.title}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{c.summary}</p>
                   </div>
-                </Link>
-              </motion.div>
-            ))}
+                ))
+              : chronicles.map((c, i) => (
+                  <motion.div
+                    key={c.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                  >
+                    <Link
+                      href={`/chronicles#entry-${c.id}`}
+                      className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20 hover:bg-white/10"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <BookOpen size={16} className="text-indigo-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-gray-500">{c.date}</span>
+                          <span className="rounded-full bg-indigo-600/20 px-1.5 py-0.5 text-xs text-indigo-400">
+                            Day {c.day}
+                          </span>
+                          {c.tags?.[0] && (
+                            <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-xs text-gray-500">
+                              {c.tags[0]}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-white truncate">{c.title}</p>
+                        <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{c.summary}</p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
           </div>
         </AnimatedSection>
 

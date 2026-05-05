@@ -302,6 +302,11 @@ function RemixPanel({
 // ── Main Gallery ──────────────────────────────────────────
 type Tab = 'all' | 'favorites' | 'history';
 
+function getDailyFeatured(): Prompt {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return prompts[dayOfYear % prompts.length];
+}
+
 export default function PromptGallery() {
   const [tab, setTab] = useState<Tab>('all');
   const [activeCategory, setActiveCategory] = useState<Category>('全部');
@@ -309,6 +314,7 @@ export default function PromptGallery() {
   const [search, setSearch] = useState('');
   const { favorites, toggle: toggleFavorite } = useFavorites();
   const { history, add: addHistory } = useHistory();
+  const featured = getDailyFeatured();
 
   const baseFiltered = prompts.filter((p) => {
     const matchCat = activeCategory === '全部' || p.category === activeCategory;
@@ -338,6 +344,49 @@ export default function PromptGallery() {
           {prompts.length} 个精选提示词 · 点击 Remix 用 AI 生成专属版本
         </p>
       </div>
+
+      {/* Today's Featured */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-8 group relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-600/10 via-purple-600/8 to-rose-600/8 p-5"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.06), rgba(244,63,94,0.06))' }}
+        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0 rounded-lg bg-indigo-500/20 p-1.5">
+              <Sparkles size={14} className="text-indigo-400" />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">今日精选</span>
+                <span className={`rounded-md border px-1.5 py-0.5 text-xs ${categoryColor[featured.category]}`}>{featured.category}</span>
+              </div>
+              <p className="font-semibold text-white">{featured.title}</p>
+              <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{featured.example}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 sm:flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(featured.template); }}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-gray-400 hover:border-white/20 hover:text-white transition-colors"
+            >
+              <Copy size={12} />复制
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPrompt(featured)}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs text-white hover:bg-indigo-500 transition-colors"
+            >
+              <RefreshCw size={12} />Remix
+            </button>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-2 border-b border-white/10 pb-4">

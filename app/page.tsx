@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowRight, BookOpen, Download, FlaskConical,
+  ArrowRight, BookOpen, Check, Download, FlaskConical,
   LineChart, Mail, Sparkles, Star, Zap,
 } from 'lucide-react';
 import TypewriterHero from '@/components/TypewriterHero';
 import AnimatedSection from '@/components/AnimatedSection';
+import { useToast } from '@/components/Toast';
 
 const tools = [
   {
@@ -76,11 +77,40 @@ const stats = [
 export default function HomePage() {
   const [toolStats, setToolStats] = useState<Record<string, number>>({});
   const [chronicles, setChronicles] = useState<ChroniclePreview[]>([]);
+  const [email, setEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const { toast } = useToast();
+  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/stats').then((r) => r.json()).then(setToolStats).catch(() => {});
     fetch('/api/chronicles?limit=3').then((r) => r.json()).then(setChronicles).catch(() => {});
   }, []);
+
+  const handleSubscribe = async () => {
+    if (!email.trim()) { emailRef.current?.focus(); return; }
+    setSubscribing(true);
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSubscribed(true);
+        setEmail('');
+        toast(data.message, 'success');
+      } else {
+        toast(data.message, res.status === 409 ? 'info' : 'error');
+      }
+    } catch {
+      toast('订阅失败，请稍后重试', 'error');
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   const trackAndNavigate = (tool: string) => {
     fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool }) })
@@ -378,19 +408,35 @@ export default function HomePage() {
               <p className="mb-6 text-gray-400 text-sm max-w-md mx-auto">
                 每周一封，记录实验进度、AI新工具发现、提示词精选。零垃圾信息。
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500/50"
-                />
-                <button
-                  type="button"
-                  className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 whitespace-nowrap"
+              {subscribed ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-5 py-3 text-sm text-emerald-400"
                 >
-                  订阅周报
-                </button>
-              </div>
+                  <Check size={16} /> 已订阅！感谢加入实验室
+                </motion.div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubscribe()}
+                    placeholder="your@email.com"
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500/50 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSubscribe}
+                    disabled={subscribing}
+                    className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500 whitespace-nowrap disabled:opacity-60"
+                  >
+                    {subscribing ? '提交中…' : '订阅周报'}
+                  </button>
+                </div>
+              )}
               <p className="mt-3 text-xs text-gray-600">随时退订 · 永远免费</p>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import CommandPalette from '@/components/CommandPalette';
 import ScrollProgress from '@/components/ScrollProgress';
 import KeyboardCheatsheet from '@/components/KeyboardCheatsheet';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const geistSans = Geist({
@@ -58,6 +59,7 @@ export default function RootLayout({
           <CommandPalette />
           <main className="flex-1">{children}</main>
           <Footer />
+          <Analytics />
         </ToastProvider>
       </body>
     </html>

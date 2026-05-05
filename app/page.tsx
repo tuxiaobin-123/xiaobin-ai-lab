@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, BookOpen, Download, FlaskConical,
@@ -89,6 +90,19 @@ const stats = [
 ];
 
 export default function HomePage() {
+  const [toolStats, setToolStats] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch('/api/stats').then((r) => r.json()).then(setToolStats).catch(() => {});
+  }, []);
+
+  const trackAndNavigate = (tool: string) => {
+    fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool }) })
+      .then((r) => r.json())
+      .then((d) => setToolStats((prev) => ({ ...prev, [tool]: d.count })))
+      .catch(() => {});
+  };
+
   return (
     <div className="relative overflow-x-hidden">
       {/* Ambient glow background */}
@@ -187,35 +201,47 @@ export default function HomePage() {
         <AnimatedSection>
           <h2 className="mb-8 text-2xl font-bold text-white">三个核心工具</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            {tools.map(({ href, icon: Icon, title, desc, badge, glow, border, gradient, iconColor, iconBg }, i) => (
-              <motion.div
-                key={href}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-              >
-                <Link
-                  href={href}
-                  className={`group flex flex-col h-full rounded-2xl border ${border} bg-gradient-to-b ${gradient} p-6 transition-all duration-300 hover:shadow-2xl ${glow}`}
+            {tools.map(({ href, icon: Icon, title, desc, badge, glow, border, gradient, iconColor, iconBg }, i) => {
+              const toolKey = href.replace('/', '');
+              const count = toolStats[toolKey] ?? 0;
+              return (
+                <motion.div
+                  key={href}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ y: -4 }}
                 >
-                  <div className="mb-4 flex items-start justify-between">
-                    <div className={`rounded-xl ${iconBg} p-2.5`}>
-                      <Icon size={22} className={iconColor} />
+                  <Link
+                    href={href}
+                    onClick={() => trackAndNavigate(toolKey)}
+                    className={`group flex flex-col h-full rounded-2xl border ${border} bg-gradient-to-b ${gradient} p-6 transition-all duration-300 hover:shadow-2xl ${glow}`}
+                  >
+                    <div className="mb-4 flex items-start justify-between">
+                      <div className={`rounded-xl ${iconBg} p-2.5`}>
+                        <Icon size={22} className={iconColor} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {count > 0 && (
+                          <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-gray-500">
+                            今日 {count} 次
+                          </span>
+                        )}
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-gray-400">
+                          {badge}
+                        </span>
+                      </div>
                     </div>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-gray-400">
-                      {badge}
-                    </span>
-                  </div>
-                  <h3 className="mb-2 font-semibold text-white text-lg">{title}</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed flex-1">{desc}</p>
-                  <div className="mt-5 flex items-center gap-1 text-xs text-indigo-400 opacity-0 transition-opacity group-hover:opacity-100">
-                    立即使用 <ArrowRight size={12} />
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    <h3 className="mb-2 font-semibold text-white text-lg">{title}</h3>
+                    <p className="text-sm text-gray-400 leading-relaxed flex-1">{desc}</p>
+                    <div className="mt-5 flex items-center gap-1 text-xs text-indigo-400 opacity-0 transition-opacity group-hover:opacity-100">
+                      立即使用 <ArrowRight size={12} />
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         </AnimatedSection>
 

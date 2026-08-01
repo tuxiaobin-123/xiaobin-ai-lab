@@ -1,0 +1,10 @@
+.env
+.env.local
+.streamlit/secrets.toml
+.venv/
+__pycache__/
+*.pyc
+data/*.duckdb
+data/*.wal
+runtime/
+.DS_Store
